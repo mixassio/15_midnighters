@@ -3,35 +3,42 @@ from pytz import timezone
 from datetime import datetime
 
 
+END_NIGHT = 5  # night is over in 5:00
+
+
 def load_attempts():
-    devman_api = requests.get('https://devman.org/api/challenges/solution_attempts/?page=1')
-    devman_content = devman_api.json()
-    pages = int(devman_content['number_of_pages'])
-    for page in range(1, pages+1):
-        devman_api = requests.get('https://devman.org/api/challenges/solution_attempts/?page={}'.format(page))
-        devman_content = devman_api.json()
-        for list_users in devman_content['records']:
+    page = 1
+    while True:
+        payload = {'page': page}
+        response = requests.get('https://devman.org/api/challenges/solution_attempts/', params=payload)
+        if response.status_code != 200: break
+        users = response.json()
+        for list_users in users['records']:
             yield {
             'username': list_users['username'],
             'timestamp': list_users['timestamp'],
             'timezone': list_users['timezone']
         }
+        page += 1
 
 
-def get_midnighters(user_info):
+def check_midnighters(user_info):
     tz = user_info['timezone']
     if user_info['timestamp'] is not None:
         server_time = datetime.fromtimestamp(user_info['timestamp'])
         client_time = timezone(tz).fromutc(server_time)
-        if client_time.hour < 5:
+        if client_time.hour < END_NIGHT:
             return True
 
 
+def print_midnighters(list_users):
+    midnighters = {}
+    for user_info in list_users:
+        if check_midnighters(user_info):
+            midnighters[user_info['username']] = True
+    for user in midnighters.keys():
+        print(user)
+
 if __name__ == '__main__':
     list_users = load_attempts()
-    set_midnighters = set()
-    for user_info in list_users:
-        if get_midnighters(user_info):
-            set_midnighters.add(user_info['username'])
-    for user in set_midnighters:
-        print(user)
+    print_midnighters(list_users)
