@@ -2,7 +2,6 @@ import requests
 from pytz import timezone
 from datetime import datetime
 
-
 END_NIGHT = 5  # night is over in 5:00
 
 
@@ -10,15 +9,17 @@ def load_attempts():
     page = 1
     while True:
         payload = {'page': page}
-        response = requests.get('https://devman.org/api/challenges/solution_attempts/', params=payload)
-        if response.status_code != 200: break
+        url = 'https://devman.org/api/challenges/solution_attempts/'
+        response = requests.get(url, params=payload)
+        if not response.ok:
+            break
         users = response.json()
         for list_users in users['records']:
             yield {
-            'username': list_users['username'],
-            'timestamp': list_users['timestamp'],
-            'timezone': list_users['timezone']
-        }
+                'username': list_users['username'],
+                'timestamp': list_users['timestamp'],
+                'timezone': list_users['timezone']
+            }
         page += 1
 
 
@@ -38,6 +39,7 @@ def print_midnighters(list_users):
             midnighters[user_info['username']] = True
     for user in midnighters.keys():
         print(user)
+
 
 if __name__ == '__main__':
     list_users = load_attempts()
